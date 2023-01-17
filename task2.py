@@ -25,7 +25,7 @@ plt.ylabel("Height of the pile h(t; L)")
 plt.show()
 
 #%% task 2b for L=16
-"""This shows a distribution the numerically estimated cross-over times for L=16 only."""
+"""This shows a distribution the numerically estimated cross-over times for L=16 only using histograms."""
 plt.figure()
 
 model2b = OsloModel(16)
@@ -46,6 +46,7 @@ plt.ylabel("Count")
 plt.show()
 
 #%% task2b for varying L
+"""This takes a while to run"""
 plt.figure()
 
 result2b = []
@@ -62,7 +63,7 @@ for system_size in [4, 8, 16, 32, 64, 128, 256]:
         individual_time.append(model.time)
     result2b.append(np.mean(individual_time))
 
-plt.plot([4, 8, 16, 32, 64, 128], result2b, "o")
+plt.plot([4, 8, 16, 32, 64, 128, 256], result2b, "o")
 plt.xlabel("System size L")
 plt.ylabel("Numerically estimated crossover time")
 plt.show()
