@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 import warnings
+import cProfile
 
 
 class OsloModel:
@@ -47,7 +48,7 @@ class OsloModel:
             return f"The Oslo Model looks like:\n{str(matrix)}"
 
     def __repr__(self):
-        return f"The z vector is {self.z} and the heights are {self._heights}"
+        return f"The z vector is {self.z}\nThe heights are {self._heights}"
 
     def is_system_stable(self) -> bool:
         """Check if the system is stable by an elementwise comparison of the z and z_threshold vectors.
@@ -61,16 +62,15 @@ class OsloModel:
         pass
 
     def run(self, n: int = 1) -> None:
-        """Run the model for n iterations by placing a grain on the leftmost site. This assumes that the current
-        configuration is stable."""
+        """Run the model for n iterations by placing a grain on the leftmost site."""
         for _ in tqdm(range(n), disable=(n < 100)):
             self._heights[0] += 1
             self.z[0] += 1
 
-            is_stable = self.is_system_stable()
+            # is_stable = self.is_system_stable()
 
             while not self.is_system_stable():
-                """This loops brings the system to the next stable state. z and heights are hardcoded independently for 
+                """This loops brings the system to the next stable state. z and heights are hardcoded independently for
                 performance reasons"""
                 if self.z[0] > self.z_threshold[0]:
                     self.z[0] -= 2
@@ -94,15 +94,18 @@ class OsloModel:
 
         self.time += n
 
+    def is_steady_state(self):
+        pass
+
     def doctor(self):
         """Perform a few standard checks of common issues within the instance of OsloModel"""
         if not self.is_system_stable():
             warnings.warn("Current configuration is not stable")
+        elif self.z != -np.diff(np.append(self.heights, 0)):
+            warnings.warn("z and heights are not consistent. Check the run method")
         else:
             "No issues found"
 
 
 if __name__ == "__main__":
-    model = OsloModel(32)
-    model.run(450)
-
+    model = OsloModel(100)
