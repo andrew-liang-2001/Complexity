@@ -16,7 +16,7 @@ for system_size in [4, 8, 16, 32, 64, 128, 256]:
     result = []
     for t in tqdm(range(80000)):
         model.run()
-        result.append(model.heights[0])
+        result.append(model._heights[0])
     plt.plot(np.arange(80000), result, label=f"L={system_size}")
 
 plt.legend()
@@ -31,12 +31,12 @@ plt.figure()
 model2b = OsloModel(16)
 result2ba = []
 
-for _ in tqdm(range(200)):  # 100 runs
+for _ in tqdm(range(1000)):  # 1000 runs
     model2b.reset()
     prev_total_height = 0
-    while sum(model2b.heights) == prev_total_height:
+    while sum(model2b._heights) == prev_total_height:
         model2b.run()
-        total_height = sum(model2b.heights)
+        total_height = sum(model2b._heights)
         prev_total_height += 1
     result2ba.append(model2b.time)
 
@@ -50,20 +50,21 @@ plt.show()
 plt.figure()
 
 result2b = []
+system_size2b = [4, 8, 16, 32, 64, 128, 256]
 
-for system_size in [4, 8, 16, 32, 64, 128, 256]:
-    model = OsloModel(system_size)
+for sys_size in system_size2b:
+    model = OsloModel(sys_size)
     individual_time = []
     for _ in tqdm(range(10)):  # 10 runs to compute the average
         prev_total_height = 0
-        while sum(model.heights) == prev_total_height:
+        while sum(model._heights) == prev_total_height:
             model.run()
-            total_height = sum(model.heights)
+            total_height = sum(model._heights)
             prev_total_height += 1
         individual_time.append(model.time)
     result2b.append(np.mean(individual_time))
 
-plt.plot([4, 8, 16, 32, 64, 128, 256], result2b, "o")
+plt.plot(system_size2b, result2b, "o")
 plt.xlabel("System size L")
 plt.ylabel("Numerically estimated crossover time")
 plt.show()
@@ -78,7 +79,7 @@ for system_size in [4, 8, 16, 32]:
         result = []
         for t in tqdm(range(80000)):
             model.run()
-            result.append(model.heights[0])
+            result.append(model._heights[0])
         plt.plot(np.arange(80000), result, label=f"L={system_size}")
 
 plt.legend()
