@@ -1,5 +1,6 @@
 from oslo import *
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 import scienceplots
 
 plt.style.use(["science"])
@@ -11,13 +12,13 @@ anyway. I am not using eq (3) to calculate the height at the leftmost site.
 """
 
 plt.figure()
-for system_size in [4, 8, 16, 32, 64, 128, 256]:
+for system_size in [4, 8, 16, 32, 64, 128, 256, 512]:
     model = OsloModel(system_size)
     result = []
-    for t in tqdm(range(80000)):
+    for t in tqdm(range(250000)):
         model.run()
         result.append(model.heights[0])
-    plt.plot(np.arange(80000), result, label=f"L={system_size}")
+    plt.plot(np.arange(250000), result, label=f"L={system_size}")
 
 plt.legend()
 plt.xlabel("Time t")
@@ -31,7 +32,7 @@ plt.figure()
 model2b = OsloModel(16)
 result2ba = []
 
-for _ in tqdm(range(200)):  # 100 runs
+for _ in tqdm(range(1000)):  # 1000 runs
     model2b.reset()
     prev_total_height = 0
     while sum(model2b.heights) == prev_total_height:
@@ -45,16 +46,16 @@ plt.xlabel("Cross-over time for L=16")
 plt.ylabel("Count")
 plt.show()
 
-#%% task2b for varying L
-"""This takes a while to run"""
+#%% task 2b for varying L
 plt.figure()
 
 result2b = []
+system_size2b = [4, 8, 16, 32, 64, 128, 256]
 
-for system_size in [4, 8, 16, 32, 64, 128, 256]:
-    model = OsloModel(system_size)
+for sys_size in tqdm(system_size2b):
+    model = OsloModel(sys_size)
     individual_time = []
-    for _ in tqdm(range(10)):  # 10 runs to compute the average
+    for _ in range(10):  # 10 runs to compute the average
         prev_total_height = 0
         while sum(model.heights) == prev_total_height:
             model.run()
@@ -63,25 +64,98 @@ for system_size in [4, 8, 16, 32, 64, 128, 256]:
         individual_time.append(model.time)
     result2b.append(np.mean(individual_time))
 
-plt.plot([4, 8, 16, 32, 64, 128, 256], result2b, "o")
+"""Use polyfit on log-log plot to calculate exponent. Note that error propagation still needs to be done.
+i.e. I need to know the error on each data point to begin this"""
+# noinspection PyTupleAssignmentBalance
+p, pcov = np.polyfit(np.log2(system_size2b), np.log2(result2b), deg=1, cov=True)
+
+plt.plot(system_size2b, result2b, "o")
+high_density = np.arange(max(system_size2b))
+plt.plot(high_density, pow(high_density, p[0]), label=f"exponent {p[0]}")
+plt.legend()
 plt.xlabel("System size L")
 plt.ylabel("Numerically estimated crossover time")
 plt.show()
 
 #%% task 2d
 plt.figure()
-M = 10  # M is the iterations to average over
-
-for system_size in [4, 8, 16, 32]:
+M = 20  # M is the iterations to average over
+result = []
+for system_size in tqdm([4, 8, 16, 32, 64, 128, 256]):
+    average = []
     for _ in range(M):
         model = OsloModel(system_size)
-        result = []
-        for t in tqdm(range(80000)):
+        internal_timings = []
+        for t in range(80000):
             model.run()
-            result.append(model.heights[0])
-        plt.plot(np.arange(80000), result, label=f"L={system_size}")
+            internal_timings.append(model.heights[0])
+        average.append(internal_timings)
+    result.append(np.mean(average, axis=0))
+    plt.plot(np.arange(80000), np.mean(average, axis=0), label=f"L={system_size}")
+
+plt.legend(title="Iterations M=20")
+plt.xlabel("Time t")
+plt.ylabel("Smoothed height of pile $\\tilde{h}(t; L)$")
+plt.show()
+
+#%% To estimate t_c for each L. This is taken from the script for 2a
+plt.figure()
+for system_size in [4, 8, 16, 32, 64, 128]:
+    model = OsloModel(system_size)
+    result = []
+    for t in tqdm(range(25000)):
+        model.run()
+        result.append(model.heights[0])
+    plt.plot(np.arange(25000), result, label=f"L={system_size}")
 
 plt.legend()
 plt.xlabel("Time t")
-plt.ylabel("Height at leftmost site h(t; L)")
+plt.ylabel("Height of the pile h(t; L)")
+plt.show()
+
+
+#%% task 2e, 2f
+plt.figure()
+
+T = 200000
+# estimates of t_c for each system size. Needs len(t_c) == len(system_size2e)
+t_c = [100, 200, 400, 1500, 5000, 18000, 70000]
+system_size2e = [4, 8, 16, 32, 64, 128, 256]
+average_heights = []
+average_square_heights = []
+
+# the 1 and 2 suffixes are for average_heights and average_square_heights respectively
+for sys_size, crit_time in tqdm(zip(system_size2e, t_c), total=len(system_size2e)):
+    model = OsloModel(sys_size)
+    sum1 = 0
+    sum2 = 0
+    for _ in range(crit_time):
+        model.run()
+    for t in range(T):
+        model.run()
+        sum1 += model.heights[0]
+        sum2 += model.heights[0] ** 2
+    result1 = sum1/T
+    result2 = sum2/T
+    average_heights.append(result1)
+    average_square_heights.append(result2)
+
+average_heights = np.array(average_heights)
+average_square_heights = np.array(average_square_heights)
+
+std_dev = np.sqrt(average_square_heights - average_heights ** 2)
+
+print(f"The system sizes are {system_size2e}")
+print(f"The average heights are {average_heights}")
+print(f"The standard deviations are {std_dev}")
+
+plt.plot(system_size2e, std_dev, ".")
+plt.xlabel("Time t")
+plt.ylabel("$\sigma_{h}(L)$")
+plt.show()
+
+#%% task 2e continued.
+plt.figure()
+
+plt.plot(system_size2e, average_heights, ".")
 plt.show()
