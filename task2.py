@@ -1,5 +1,6 @@
 from oslo import *
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 import scienceplots
 
 plt.style.use(["science"])
@@ -45,7 +46,7 @@ plt.xlabel("Cross-over time for L=16")
 plt.ylabel("Count")
 plt.show()
 
-#%% task2b for varying L
+#%% task 2b for varying L
 plt.figure()
 
 result2b = []
@@ -63,35 +64,41 @@ for sys_size in tqdm(system_size2b):
         individual_time.append(model.time)
     result2b.append(np.mean(individual_time))
 
+"""Use polyfit on log-log plot to calculate exponent. Note that error propagation still needs to be done.
+i.e. I need to know the error on each data point to begin this"""
+# noinspection PyTupleAssignmentBalance
+p, pcov = np.polyfit(np.log2(system_size2b), np.log2(result2b), deg=1, cov=True)
+
 plt.plot(system_size2b, result2b, "o")
+high_density = np.arange(max(system_size2b))
+plt.plot(high_density, pow(high_density, p[0]), label=f"exponent {p[0]}")
+plt.legend()
 plt.xlabel("System size L")
 plt.ylabel("Numerically estimated crossover time")
 plt.show()
 
 #%% task 2d
 plt.figure()
-M = 10  # M is the iterations to average over
-
-for system_size in [4, 8, 16, 32]:
+M = 20  # M is the iterations to average over
+result = []
+for system_size in tqdm([4, 8, 16, 32, 64, 128, 256]):
     average = []
     for _ in range(M):
         model = OsloModel(system_size)
-        internal_result = []
-        for t in tqdm(range(80000)):
+        internal_timings = []
+        for t in range(80000):
             model.run()
-            internal_result.append(model.heights[0])
-        average.append(internal_result)
+            internal_timings.append(model.heights[0])
+        average.append(internal_timings)
+    result.append(np.mean(average, axis=0))
+    plt.plot(np.arange(80000), np.mean(average, axis=0), label=f"L={system_size}")
 
-    plt.plot(np.arange(80000), result, label=f"L={system_size}")
-
-plt.legend()
+plt.legend(title="Iterations M=20")
 plt.xlabel("Time t")
-plt.ylabel("Height of pile h(t; L)")
+plt.ylabel("Smoothed height of pile $\\tilde{h}(t; L)$")
 plt.show()
 
-# %%
-"""To estimate t_c for each L. This is taken from the script for 2a"""
-
+#%% To estimate t_c for each L. This is taken from the script for 2a
 plt.figure()
 for system_size in [4, 8, 16, 32, 64, 128]:
     model = OsloModel(system_size)
@@ -111,7 +118,6 @@ plt.show()
 plt.figure()
 
 T = 200000
-
 # estimates of t_c for each system size. Needs len(t_c) == len(system_size2e)
 t_c = [100, 200, 400, 1500, 5000, 18000, 70000]
 system_size2e = [4, 8, 16, 32, 64, 128, 256]
@@ -151,5 +157,5 @@ plt.show()
 #%% task 2e continued.
 plt.figure()
 
-plt.plot(system_size2e, average_heights)
+plt.plot(system_size2e, average_heights, ".")
 plt.show()

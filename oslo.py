@@ -1,6 +1,4 @@
 import numpy as np
-from tqdm import tqdm
-import warnings
 from numba.experimental import jitclass  # https://numba.readthedocs.io/en/stable/user/jitclass.html
 from numba import int32, int64
 
