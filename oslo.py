@@ -2,6 +2,8 @@ import numpy as np
 from numba.experimental import jitclass  # https://numba.readthedocs.io/en/stable/user/jitclass.html
 from numba import int32, int64
 
+L = np.array([4, 8, 16, 32, 64, 128, 256])  # define L in the namespace
+
 
 @jitclass(spec=[
     ('L', int32),
@@ -52,10 +54,11 @@ class OsloModel:
     def reset(self) -> None:
         self.__init__(self.L)
 
-    def run(self) -> None:
-        """Run the model for 1 iteration by placing a grain on the leftmost site."""
+    def run(self) -> int:
+        """Run the model for a single iteration by placing a grain on the leftmost site. Return the avalanche size."""
         self._heights[0] += 1
         self.z[0] += 1
+        s = 0
 
         while not self.is_system_stable():
             """This loops brings the system to the next stable state. z and heights are hardcoded independently for
@@ -66,6 +69,7 @@ class OsloModel:
                 self._heights[0] -= 1
                 self._heights[1] += 1
                 self.z_threshold[0] = np.random.randint(1, 3)
+                s += 1
             for i in range(1, self.L - 1):
                 if self.z[i] > self.z_threshold[i]:
                     self.z[i] -= 2
@@ -74,13 +78,16 @@ class OsloModel:
                     self._heights[i] -= 1
                     self._heights[i + 1] += 1
                     self.z_threshold[i] = np.random.randint(1, 3)
+                    s += 1
             if self.z[-1] > self.z_threshold[-1]:
                 self.z[-1] -= 1
                 self.z[-2] += 1
                 self._heights[-1] -= 1
                 self.z_threshold[-1] = np.random.randint(1, 3)
+                s += 1
 
         self.time += 1
+        return s
 
     def unstable_indices(self):
         """Return the indices of the unstable sites"""
@@ -98,4 +105,4 @@ class OsloModel:
 
 
 if __name__ == "__main__":
-    model = OsloModel(8)
+    model = OsloModel(16)

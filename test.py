@@ -7,7 +7,7 @@ for _ in range(5000):  # run the model for a long time to reach the steady state
     model.run()
 
 result = []
-for i in tqdm(range(500000)):  # take average over t=5000
+for i in tqdm(range(3000000)):  # take average over t=5000
     model.run()
     result.append(model.heights[0])
 
