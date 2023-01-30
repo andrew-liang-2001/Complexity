@@ -9,8 +9,10 @@ class OsloModel:
     """A class for the Oslo Model"""
 
     def __init__(self, L: int):
-        """Note that under the numba implementation, creation of multiple models is slow because of the need for
-        random arrays to be looped over."""
+        """
+        Initialise the Oslo Model
+        :param L: size of the system L
+        """
         self.L = L
         self._heights = np.zeros(L, dtype=np.int32)
         self.z_threshold = np.random.choice([1, 2], size=L, p=[0.5, 0.5])
@@ -36,12 +38,20 @@ class OsloModel:
 
     @property
     def heights(self):
+        """
+        Get the heights of the model
+        :return:
+        """
         return self._heights
 
     @heights.setter
-    def heights(self, value):
-        """Set the heights of the model. This runs a series of checks to verify that the heights configurations
-        are valid. Also calculates the corresponding z vector."""
+    def heights(self, value) -> None:
+        """
+        Set the heights of the model. This runs a series of checks to verify that the heights configurations
+        are valid. Also calculate the corresponding z vector
+
+        :param value: new heights configuration
+        """
         if not isinstance(value, np.ndarray):
             raise TypeError("Heights must be a numpy array")
         if value.dtype != int:
@@ -64,7 +74,12 @@ class OsloModel:
         return np.all(self.z <= self.z_threshold)
 
     def run(self) -> int:
-        """A wrapper for the numba compiled function _run"""
+        """
+        Run the model for a single iteration by placing a grain on the leftmost site. Return the avalanche size s.
+        A wrapper for the numba-compiled function _run
+        :return: avalanche size s
+        """
+
         self._heights, self.z, self.z_threshold, self.time, s = _run(self._heights, self.z, self.z_threshold, self.L,
                                                                      self.time)
         return s
@@ -88,9 +103,18 @@ class OsloModel:
             "No issues found"
 
 
-@nb.njit(
+@nb.njit
 def _run(heights, z, z_threshold, L: int, time: int):
-    """Run the model for a single iteration by placing a grain on the leftmost site. Return the avalanche size s."""
+    """
+    Run the model for a single iteration by placing a grain on the leftmost site. Return the avalanche size s.
+
+    :param heights: array of heights of size L
+    :param z: array of z of size L
+    :param z_threshold: array of z_thresholds of size L
+    :param L: length of the model
+    :param time: time of the system t
+    :return: avalanche size s
+    """
     heights[0] += 1
     z[0] += 1
     s = 0
