@@ -2,7 +2,10 @@ import numpy as np
 import numba as nb
 import warnings
 
+
 L = np.array([4, 8, 16, 32, 64, 128, 256])  # define L in the namespace
+L_big = np.array([4, 8, 16, 32, 64, 128, 256, 512, 1024])
+t_c = np.array([100, 200, 400, 1500, 5000, 18000, 70000, 220_000, 1_000_000])
 
 
 class OsloModel:
@@ -16,8 +19,7 @@ class OsloModel:
         self.L = L
         self._heights = np.zeros(L, dtype=np.int32)
         self.z_threshold = np.random.choice([1, 2], size=L, p=[0.5, 0.5])
-        temp = np.append(self._heights, np.array(0, dtype=np.int32))
-        self.z = temp[:-1] - temp[1:]
+        self.z = np.zeros(L, dtype=np.int32)
         self.time = 0
 
     def __str__(self):
@@ -34,13 +36,13 @@ class OsloModel:
             return f"The Oslo Model looks like:\n{str(matrix)}"
 
     def __repr__(self):
-        return f"The z vector is {self.z}\nThe heights are {self._heights}"
+        return f"The z values are {self.z}\nThe heights are {self._heights}"
 
     @property
     def heights(self):
         """
         Get the heights of the model
-        :return:
+        :return: heights
         """
         return self._heights
 
@@ -52,10 +54,8 @@ class OsloModel:
 
         :param value: new heights configuration
         """
-        if not isinstance(value, np.ndarray):
-            raise TypeError("Heights must be a numpy array")
         if value.dtype != int:
-            raise TypeError("Heights must be an array of integers")
+            raise TypeError("Heights must contain integers only")
         if value.shape[0] != self.L:
             raise ValueError("Heights must have the same length as L")
         if np.any(value < 0):
@@ -147,6 +147,10 @@ def _run(heights, z, z_threshold, L: int, time: int):
 
     time += 1
     return heights, z, z_threshold, time, s
+
+
+def truncated_series(L, a0, a1, w1):
+    return a0 * L * (1-a1 * L ** (-w1))
 
 
 if __name__ == "__main__":
