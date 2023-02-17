@@ -27,10 +27,6 @@ class TestOslo(unittest.TestCase):
         # noinspection PyTypeChecker
         self.assertAlmostEqual(np.mean(result), 53.9, places=1)
 
-    def test3(self):
-
-
-
 
 if __name__ == '__main__':
     unittest.main()

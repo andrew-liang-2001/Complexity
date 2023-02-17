@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import scipy.constants as const
 from collections import Counter
 
-plt.style.use(["science", "grid"])
+plt.style.use(["science"])
 plt.rcParams.update({"font.size": 16,
                      "figure.figsize": (7.5, 4.5),
                      "axes.labelsize": 15,
@@ -66,4 +66,16 @@ for i, (sys_size, crit_time, time_after_tc) in enumerate(zip([2, 3, 4, 5], t_c, 
     print(f"System size: {sys_size}, N_R: {len(observed_config)}")
     print(f"N_R is analytically: {recurrent_configurations(sys_size)}")  # compare with equation
 
-# %%
+# %% BTW model
+
+model = OsloModel(8, z_threshold_max=1)  # z_threshold_max=1 is equivalent to only allowing z_th = 1 i.e. BTW model
+TestCondition = True
+true_result = np.tril(np.ones((8, 8), dtype=int), -1) + np.identity(8, dtype=int)
+
+for _ in range(1000):  # run the model for a long time to reach the steady state
+    model.run()
+for _ in range(1000):
+    if np.all(model.heights_matrix() != true_result):
+        raise ValueError("BTW model is not working")
+
+print("BTW test passed")

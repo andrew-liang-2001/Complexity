@@ -12,18 +12,16 @@
 # %%
 
 import oslo
-import oslo2
 from tqdm import tqdm
 
 # %%
 
 model1 = oslo.OsloModel(256)
-model2 = oslo2.OsloModel(256)
 
 #%%
 for _ in tqdm(range(300000)):
     model1.run()
 
 #%%
-for _ in tqdm(range(300000)):
-    model2.run()
+for i in range(1, 0):
+    print("hi")
