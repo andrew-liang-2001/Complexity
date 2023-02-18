@@ -2,7 +2,6 @@ from oslo import *
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import scipy.constants as const
-from collections import Counter
 
 plt.style.use(["science"])
 plt.rcParams.update({"font.size": 16,
