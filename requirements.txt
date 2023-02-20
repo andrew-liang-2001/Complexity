@@ -1,0 +1,8 @@
+numpy~=1.23.4
+numba~=0.56.4
+matplotlib~=3.5.3
+scipy~=1.9.1
+tqdm~=4.64.1
+scienceplots~=2.0.0
+pandas~=1.4.4
+uncertainties~=3.1.7

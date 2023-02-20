@@ -211,5 +211,7 @@ def truncated_series(L, a0, a1, w1):
 
 
 if __name__ == "__main__":
-    model = OsloModel(16)
-    model.run()
+    model = OsloModel(4)
+    for _ in range(10):
+        model.run()
+        print(model)
