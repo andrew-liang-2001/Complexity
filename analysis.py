@@ -9,10 +9,7 @@ from tqdm import tqdm
 import scienceplots
 from collections import Counter
 import scipy as sp
-from statsmodels.graphics.tsaplots import plot_acf
-import statsmodels.api as sm
 import pandas as pd
-import pickle
 import uncertainties as unc
 from uncertainties import umath
 
@@ -30,7 +27,7 @@ plt.rcParams.update({"font.size": 16,
 Hence, the optimisation that is recording changes in height is not required, because looking up model.heights[0] is O(1)
 anyway. I am not using eq (3) to calculate the height at the leftmost site.
 """
-plt.figure()
+fig = plt.figure()
 result2a = []
 
 for system_size in L_big:
@@ -46,10 +43,11 @@ pd.to_pickle(result2a, "task2a.pkl")
 plt.legend()
 plt.xlabel("t")
 plt.ylabel("$h(t; L)$")
-plt.savefig("plots/Task2a1.pgf', format='pgf")
+fig.tight_layout()
+plt.savefig("plots/Task2a1.pgf", format="pgf")
 
 # %% task 2a - up to L=256 only
-plt.figure()
+fig = plt.figure()
 
 for system_size in L:
     model = OsloModel(system_size)
@@ -59,10 +57,11 @@ for system_size in L:
         result.append(model.heights[0])
     plt.plot(np.arange(80000), result, label=f"L={system_size}")
 
-plt.legend()
+plt.legend(fontsize=11)
 plt.xlabel("t")
 plt.ylabel("$h(t; L)$")
-plt.savefig("plots/Task2a.pgf', format='pgf")
+fig.tight_layout()
+plt.savefig("plots/Task2a.pdf", format="pdf")
 # plt.show()
 
 # %% task 2b for L=16 - NOT ESSENTIAL
@@ -93,7 +92,7 @@ plt.show()
 # %% task 2b for varying L - this takes forever! Pickle this
 result2b = []
 std2b = []
-M2b = 50
+M2b = 10
 
 for sys_size in L_big:
     model = OsloModel(sys_size)
@@ -109,11 +108,10 @@ for sys_size in L_big:
     result2b.append(np.mean(individual_time))
     std2b.append(np.std(individual_time))
 
-pd.to_pickle(result2b, "data/task2b.pkl")
-pd.to_pickle(std2b, "data/task2b_std.pkl")
+# pd.to_pickle(result2b, "data/task2b.pkl")
+# pd.to_pickle(std2b, "data/task2b_std.pkl")
 
-# %%
-M2b = 50
+ # %%
 result2b = pd.read_pickle("data/task2b.pkl")
 std2b = pd.read_pickle("data/task2b_std.pkl")
 
@@ -121,19 +119,20 @@ std2b = pd.read_pickle("data/task2b_std.pkl")
 fig, ax = plt.subplots(1, 2, figsize=(6.6942, 4.016538))
 
 # noinspection PyTupleAssignmentBalance
-p2b, pcov2b = np.polyfit(np.log(L_big)[-4:], np.log(result2b)[-4:], deg=1, cov=True, w=(L_big/std2b)[-4:])
+p2b, pcov2b = np.polyfit(np.log(L_big)[-4:], np.log(result2b)[-4:], deg=1, cov=True, w=(L_big / std2b)[-4:])
 ax[0].loglog(L_big, result2b, ".")
 high_density = np.arange(max(L_big))
 
 exponent2b = unc.ufloat(p2b[0], np.sqrt(pcov2b[0, 0]))
 log_b = unc.ufloat(p2b[1], np.sqrt(pcov2b[1, 1]))
 b = umath.exp(log_b)
-ax[0].plot(high_density, np.exp(p2b[1])*pow(high_density, p2b[0]), "--", label=r"$\beta$ = %.3f $\pm$ %.3f" % (exponent2b.n, exponent2b.s))
+ax[0].plot(high_density, np.exp(p2b[1]) * pow(high_density, p2b[0]), "--",
+           label=r"$\beta$ = %.3f $\pm$ %.3f" % (exponent2b.n, exponent2b.s))
 
 ax[0].legend(fontsize=12)
 ax[0].set_xlabel("L")
 ax[0].set_ylabel(r"$\langle t_c(L) \rangle$")
-ax[1].plot(L_big, result2b / L_big ** 2, ".--")
+ax[1].plot(L_big, result2b / L_big ** 2, ".-")
 ax[1].set_xlabel("L")
 ax[1].set_ylabel(r"$\langle t_c(L) \rangle/L^{2}$")
 fig.tight_layout()
@@ -174,31 +173,49 @@ pd.to_pickle(result2d, "data/task2d.pkl")
 
 # %% task 2d - load from pickle
 result2d = pd.read_pickle("data/task2d.pkl")
+transient_cutoff_estimate = np.where(result2d[-1] / L_big[-1] > 1.730)[0][0] # this is a higher estimate for t_c
+est = np.where(result2d[-1] / L_big[-1] > 1.726)[0][0]  # this is a lower estimate for t_c
+print(f"Estimated higher t_c = {np.arange(4_000_000)[transient_cutoff_estimate]/1024**2})")
+print(f"Estimated lower t_c = {np.arange(4_000_000)[est]/1024**2})")
 
 # %% task 2d plot
 fig = plt.figure()
 
 result2d = np.array(result2d)
+# noinspection PyTupleAssignmentBalance
+p2d, pcov2d = np.polyfit(np.log(np.arange(4_000_000)[10_000:est] / 1024 ** 2), np.log(result2d[-1][10_000:est]/1024), deg=1, cov=True)
 
+exponent2d = unc.ufloat(p2d[0], np.sqrt(pcov2d[0, 0]))
 for system_size, time_series in zip(L_big, result2d):
     plt.plot(np.arange(4_000_000) / system_size ** 2,
              np.pad(time_series, (0, 4_000_000 - len(time_series)), 'constant') / system_size,
              label=f"L={system_size}")
 
-transient_cutoff_estimate = np.where(result2d[-1] / L_big[-1] > 1.730)[0][0]
 a_0_fit = np.mean((result2d[-1] / L_big[-1])[transient_cutoff_estimate:])
 a_0_fit_std = np.std((result2d[-1] / L_big[-1])[transient_cutoff_estimate:])
+plt.plot(np.arange(4_000_000) / 1024 ** 2, np.exp(p2d[1]) * pow(np.arange(4_000_000) / 1024 ** 2, p2d[0]), "--")
 
-plt.axhline(a_0_fit, linestyle="--", color="b")
-plt.axvline(np.arange(4_000_000)[transient_cutoff_estimate] / L_big[-1] ** 2, linestyle="--", color="r")
+# plt.axhline(a_0_fit, linestyle="--", color="b")
+# plt.axvline(np.arange(4_000_000)[transient_cutoff_estimate] / L_big[-1] ** 2, linestyle="--", color="r")
+
 plt.plot()
 plt.legend()
 plt.xlim(-0.05, 1.5)
+plt.ylim(0.05, 2)
 plt.xlabel("$t/L^2$")
 plt.ylabel(r"$\tilde{h}(t; L)/L$")
 fig.tight_layout()
 plt.savefig("plots/Task2d_collapsed.pgf", format="pgf")
-# plt.show()
+plt.show()
+
+# %%
+plt.figure()
+
+plt.loglog(np.arange(4_000_000)[10_000:est] / 1024 ** 2, result2d[-1][10_000:est]/1024, ".")
+plt.loglog(np.arange(4_000_000)[10_000:est] / 1024 ** 2, np.exp(p2d[1]) * pow(np.arange(4_000_000)[10_000:est] / 1024 ** 2, p2d[0]), "--")
+
+plt.show()
+
 
 # %% Task 2e, 2f, 3a & 3b - Find moments, avg heights and std dev
 T = 10_000_000  # time steps after t_c
@@ -254,7 +271,7 @@ for sys_size, crit_time in zip(L_big, t_c):
     # task 2g
     prob = Counter(observed_config)  # count the first index for each L
     prob = {k: v / T for k, v in prob.items()}  # normalise
-    prob = dict(sorted(prob.items()))   # sort by key. Shouldn't take that long
+    prob = dict(sorted(prob.items()))  # sort by key. Shouldn't take that long
     result2g.append(prob)
 
 S_matrix = np.transpose(S_matrix)
@@ -277,14 +294,11 @@ result2g = pd.read_pickle("data/task2g.pkl")
 result3a = pd.read_pickle("data/task3a.pkl")
 
 # %% task 2e - curve fit method
-plt.figure()
+fig, ax = plt.subplots(1, 2)
+T = 10_000_000
 
 # noinspection PyTupleAssignmentBalance
-# popt2e, pcov2e = sp.optimize.curve_fit(truncated_series, L_big, average_heights, sigma=std_dev/np.sqrt(T),
-#                                        absolute_sigma=True)
-
-# noinspection PyTupleAssignmentBalance
-popt2e, pcov2e = sp.optimize.curve_fit(truncated_series, L_big, average_heights)
+popt2e, pcov2e = sp.optimize.curve_fit(truncated_series, L_big, average_heights, sigma=std_dev / np.sqrt(T))
 
 a_0 = unc.ufloat(popt2e[0], np.sqrt(pcov2e[0, 0]))
 a_1 = unc.ufloat(popt2e[1], np.sqrt(pcov2e[1, 1]))
@@ -295,20 +309,23 @@ print(a_1)
 print(w_1)
 
 # plt.plot(L_big, average_heights, ".")
-plt.errorbar(L_big, average_heights, yerr=std_dev/np.sqrt(T), fmt=".")
-plt.plot(L_big, truncated_series(L_big, *popt2e))
-plt.xlabel("System size L")
-plt.ylabel("Average height $\\langle h \\rangle$")
-plt.show()
+ax[0].errorbar(L_big, average_heights, yerr=std_dev / np.sqrt(T), fmt=".")
+ax[0].plot(L_big, truncated_series(L_big, *popt2e), "--")
+ax[0].set_xlabel("L")
+ax[0].set_ylabel(r"$\langle h(t; L) \rangle_t$")
+a_0_guess = 1.7344
 
-#%% task 2e - log method
-plt.figure()
-a_0_guess = 1.7345
+ax[1].loglog(L_big, a_0_guess - average_heights / L_big, ".")
 
-plt.loglog(L_big, a_0_guess - average_heights/L_big, ".--")
-# popt2e1, pcov2e1 = np.polyfit(np.log(L_big), np.log(a_0_guess - average_heights/L_big), deg=1, cov=True)
-plt.xlabel("System size L")
-plt.ylabel(r"$a_0 - \langle h(t ; L)\rangle_t /L$")
+# noinspection PyTupleAssignmentBalance
+popt2e1, pcov2e1 = np.polyfit(np.log(L_big), np.log(a_0_guess - average_heights / L_big), deg=1, cov=True)
+ax[1].loglog(L_big, np.exp(popt2e1[1]) * L_big ** popt2e1[0], "--")
+w_1_alt_method = unc.ufloat(popt2e1[0], np.sqrt(pcov2e1[0, 0]))
+print(w_1_alt_method)
+ax[1].set_xlabel("L")
+ax[1].set_ylabel(r"$a_0 - \langle h(t ; L)\rangle_t/L$")
+fig.tight_layout()
+# plt.savefig("plots/Task2e.pgf", format="pgf")
 plt.show()
 
 # %% task 2f - plot of sigma_h vs L
@@ -319,7 +336,8 @@ ax[0].plot(L_big, std_dev, ".")
 p2f, pcov2f = np.polyfit(np.log(L_big), np.log(std_dev), deg=1, cov=True)
 
 high_density = np.arange(min(L_big), max(L_big))
-ax[0].loglog(high_density, np.exp(p2f[1]) * pow(high_density, p2f[0]), label="exponent = %.3f ± %.3f" % (p2f[0], np.sqrt(pcov2f[0, 0])))
+ax[0].loglog(high_density, np.exp(p2f[1]) * pow(high_density, p2f[0]), "--",
+             label="$\gamma$ = %.3f ± %.3f" % (p2f[0], np.sqrt(pcov2f[0, 0])))
 ax[0].set_xlabel("L", fontsize=12)
 ax[0].set_ylabel("$\sigma_{h}(L)$", fontsize=12)
 ax[0].tick_params(axis='both', which='major', labelsize=10)
@@ -328,44 +346,57 @@ ax[0].legend(fontsize=10)
 # task 2f - check slope against L as L -> infinity
 ax[1].plot(L_big, average_heights / L_big, ".")
 ax[1].set_xlabel("L", fontsize=12)
-ax[1].set_ylabel("$\\langle h(t; L) \\rangle_{t} / L$", fontsize=12)
+ax[1].set_ylabel(r"$\langle h(t; L) \rangle_{t} / L$", fontsize=12)
 ax[1].tick_params(axis='both', which='major', labelsize=10)
-ax[1].axhline(y=max(average_heights / L_big), color="r", linestyle="--", label=r"$\min {a_0}$ = %.3f" % max(average_heights / L_big))
+ax[1].axhline(y=max(average_heights / L_big), color="r", linestyle="--",
+              label=r"$\min {a_0}$ = %.3f" % max(average_heights / L_big))
 ax[1].legend(fontsize=10)
 
 print(max(average_heights / L_big))
-# plt.savefig("task2f.pgf", format="pgf")
+fig.tight_layout()
+plt.savefig("plots/task2f.pgf", format="pgf")
 plt.show()
 
 # %% task 2g - plot not collapsed
-plt.figure()
+fig = plt.figure()
 
 for i, data in enumerate(result2g):
-    plt.plot(list(data.keys()), list(data.values()), "--", label=f"L = {2 ** (i+2)}")
-    plt.bar(list(data.keys()), list(data.values()))
+    plt.plot(list(data.keys()), list(data.values()), "--")
+    plt.bar(list(data.keys()), list(data.values()), label=f"L = {2 ** (i + 2)}")
 
 plt.xscale("log")
 # plt.plot(std_dev, (np.sqrt(2 * np.pi) * std_dev) ** -1, label="$\sigma_h$")
 plt.xlabel("$h$")
 plt.ylabel("$P(h; L)$")
-plt.legend()
+plt.legend(fontsize=10)
+plt.savefig("plots/task2g1.pgf", format="pgf")
+fig.tight_layout()
+# plt.show()
 
-plt.show()
-
-# %%
+# %% task 2g - test for normality
 T = 10_000_000
 unpack = [{k: round(v * T) for k, v in prob.items()} for prob in result2g]  # recover the counts from probabilities
 # standardise the keys using key - avg_height[i]/std_dev[i]
 unpack = [{(k - average_heights[i]) / std_dev[i]: v for k, v in prob.items()} for i, prob in enumerate(unpack)]
-# flatten the list of dictionaries
-unpack = [item for sublist in unpack for item in sublist]
+# for each dictionary in unpack, duplicate the keys by the value
+
+flattened_arr = []
+for dictionary in unpack:
+    for k, v in dictionary.items():
+        flattened_arr.extend([k] * v)
+
+# normal_generator = sp.stats.norm.rvs(size=100_000)
+shapiro_result = sp.stats.shapiro(flattened_arr)  # don't use because it doesn't work as well with many duplicate values
+ks_test_result = sp.stats.kstest(flattened_arr, "norm")
+print(shapiro_result)
+# print(ks_test_result)
 
 # %% task 2g - plot collapsed
-plt.figure()
+fig = plt.figure()
 
 for i, data in enumerate(result2g):
     plt.plot((np.fromiter(data.keys(), dtype=np.double) - average_heights[i]) / std_dev[i],
-             np.fromiter(data.values(), dtype=np.double) * std_dev[i], ".", label=f"L = {2 ** (i+2)}")
+             np.fromiter(data.values(), dtype=np.double) * std_dev[i], ".", label=f"L = {2 ** (i + 2)}")
 
 x = np.linspace(-6, 6, 1000)
 plt.plot(x, sp.stats.norm.pdf(x, 0, 1), "--", label="$\mathcal{H}(x)$")
@@ -373,15 +404,12 @@ plt.xlim(-6, 6)
 plt.xlabel(r"$\left(h-\langle h \rangle\right)/ \sigma_h$")
 plt.ylabel(r"$\sigma_h P(h; L)$")
 plt.legend()
+fig.tight_layout()
+plt.savefig("plots/task2g2.pgf", format="pgf")
 plt.show()
 
-# %% task 2g - Q-Q plot
-for i, data in enumerate(result2g):
-    fig = sm.qqplot(np.fromiter(data.values(), dtype=np.double) * std_dev[i], line='45')
-plt.show()
-
-#%% Task 3b - plot moments
-plt.figure()
+# %% Task 3b - plot moments
+fig = plt.figure()
 p = plt.get_cmap("tab10")
 result3b = []  # list of $D(1+k-\tau_s)$ for each system size
 error3b = []
@@ -398,30 +426,49 @@ for i, moment in enumerate(S_matrix):
 error3b = np.array(error3b)
 plt.xlabel("L")
 plt.ylabel(r"$ \langle s^{k} \rangle $")
-plt.legend(fontsize=11)
-# plt.savefig("task3b1.pgf", format="pgf")
+plt.legend(fontsize=10)
+fig.tight_layout()
+plt.savefig("plots/Task3b1.pgf", format="pgf")
 plt.show()
 
-# %%
-plt.figure()
+# %% Task 3b - check for finite sized scaling effects
+fig = plt.figure()
 p = plt.get_cmap("tab10")
 # ratio = S_matrix[-1][0] / S_matrix[1][0]
 
 for i, moment in enumerate(S_matrix):
     # noinspection PyTupleAssignmentBalance
     p31, pcov3b = np.polyfit(np.log(L_big[-4:]), np.log(moment[-4:]), deg=1, cov=True)  # fit only to last 5 points
-    plt.loglog(L_big, moment/L_big ** p31[0], label=f"k={i + 1}", color=p(i / 10))
-    # plt.loglog(L_big, np.exp(p31[1]) * L_big ** p31[0], "--", color=p(i / 10))
+    plt.loglog(L_big, moment / L_big ** p31[0], ".-", label=f"k={i + 1}", color=p(i / 10))
 
 error3b = np.array(error3b)
 plt.xlabel("L")
 plt.ylabel(r"$ \langle s^{k} \rangle $")
-plt.legend(fontsize=11)
-# plt.savefig("task3b1.pgf", format="pgf")
+plt.legend(bbox_to_anchor=(1.04, 0.5), loc="center left", borderaxespad=0, mode="expand", fontsize=10)
+fig.tight_layout(rect=[0, 0, 0.9, 1])
+# plt.savefig("plots/Task3b3.pgf", format="pgf")
+plt.show()
+
+# %% Task 3b - check for finite sized scaling effects
+fig, ax = plt.subplots(1, 2)
+p = plt.get_cmap("tab10")
+# ratio = S_matrix[-1][0] / S_matrix[1][0]
+
+for i, moment in enumerate(S_matrix):
+    # noinspection PyTupleAssignmentBalance
+    p31, pcov3b = np.polyfit(np.log(L_big[-4:]), np.log(moment[-4:]), deg=1, cov=True)  # fit only to last 5 points
+    ax[0].loglog(L_big, moment / L_big ** p31[0], ".-", label=f"k={i + 1}", color=p(i / 10))
+
+error3b = np.array(error3b)
+ax[0].set_xlabel("L")
+ax[0].set_ylabel(r"$ \langle s^{k} \rangle $")
+ax[0].legend(bbox_to_anchor=(1.04, 0.5), loc="center left", borderaxespad=0, mode="expand", fontsize=10)
+fig.tight_layout(rect=[0, 0, 0.9, 1])
+# plt.savefig("plots/Task3b3.pgf", format="pgf")
 plt.show()
 
 # %% Task 3b - Find both exponents
-plt.figure()
+fig = plt.figure()
 
 k = np.arange(1, 11)
 plt.plot(k, result3b, ".")
@@ -441,11 +488,12 @@ plt.xlim(0, 11)
 plt.ylim(0, 23)
 plt.xlabel("$k$")
 plt.ylabel("$D(1+k-\\tau_s)$")
-plt.savefig("task3b2.pgf", format="pgf")
+fig.tight_layout()
+plt.savefig("plots/Task3b2.pgf", format="pgf")
 plt.show()
 
 # %% task 3a - plot not collapsed
-plt.figure()
+fig = plt.figure()
 
 idx = np.where((result3a[-1][0] > 10) & (result3a[-1][0] < 10_000))[0]
 # noinspection PyTupleAssignmentBalance
@@ -454,32 +502,26 @@ p3a1, pcov3a1 = np.polyfit(np.log(result3a[-1][0][idx]), np.log(result3a[-1][1][
 for i, data in enumerate(result3a):
     plt.loglog(*data, "o--", ms=3, label=f"L={2 ** (i + 2)}")
 
-tau_s_3a = unc.ufloat(p3a1[0], np.sqrt(pcov3a1[0, 0]))
+ratio3a = result3a[-1][0][-1] / result3a[1][0][-1]
+
+tau_s_3a = unc.ufloat(-p3a1[0], np.sqrt(pcov3a1[0, 0]))
 print(f"tau_s = {tau_s_3a}")
 plt.xlabel("s")
 plt.ylabel(r"$\tilde P_{N}(s; L)$")
 plt.legend()
+fig.tight_layout()
+# plt.savefig("plots/Task3a1.pgf", format="pgf")
 plt.show()
 
 # %% Task 3a - plot collapsed
-plt.figure()
+fig = plt.figure()
 
 for i, (x, y) in enumerate(result3a):
-    plt.loglog(x / (2 ** (i + 2)) ** 2.25, x ** (14 / 9) * y, "-", ms=3, label=f"L={2 ** (i + 2)}")
+    plt.loglog(x / (2 ** (i + 2)) ** 2.20, x ** 1.543 * y, "-", ms=3, label=f"L={2 ** (i + 2)}")
 
 plt.xlabel("$sL^{-D}$")
-plt.ylabel("$s^{\\tau_s} \\tilde P_{N}(s; L)$")
+plt.ylabel(r"$s^{\tau_s} \tilde P_{N}(s; L)$")
 plt.legend()
-
-# %%
-model2g = OsloModel(2048)
-for _ in tqdm(range(4_000_000)):
-    model2g.run()
-
-data = model2g.z
-plot_acf(x=data, lags=10)
-plt.show()
-
-# %%
-plt.plot(np.arange(2048), data, ".")
+fig.tight_layout()
+plt.savefig("plots/Task3a2.pgf", format="pgf")
 plt.show()
