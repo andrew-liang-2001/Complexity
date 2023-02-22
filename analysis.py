@@ -153,7 +153,6 @@ plt.show()
 # plt.figure()
 # M = [2_000_000, 500_000, 100_000, 20_000, 5000, 1000, 200, 50, 10]  # M is the iterations to average over
 M = [10_000_000, 2_500_000, 750_000, 200_000, 40_000, 8000, 1000, 400, 20]  # run this overnight 8h+
-# M = np.ones(len(L_big), dtype=int)
 
 time2d = t_c * 3
 result2d = []
@@ -207,15 +206,6 @@ plt.ylabel(r"$\tilde{h}(t; L)/L$")
 fig.tight_layout()
 plt.savefig("plots/Task2d_collapsed.pgf", format="pgf")
 plt.show()
-
-# %%
-plt.figure()
-
-plt.loglog(np.arange(4_000_000)[10_000:est] / 1024 ** 2, result2d[-1][10_000:est]/1024, ".")
-plt.loglog(np.arange(4_000_000)[10_000:est] / 1024 ** 2, np.exp(p2d[1]) * pow(np.arange(4_000_000)[10_000:est] / 1024 ** 2, p2d[0]), "--")
-
-plt.show()
-
 
 # %% Task 2e, 2f, 3a & 3b - Find moments, avg heights and std dev
 T = 10_000_000  # time steps after t_c
@@ -308,7 +298,6 @@ print(a_0)
 print(a_1)
 print(w_1)
 
-# plt.plot(L_big, average_heights, ".")
 ax[0].errorbar(L_big, average_heights, yerr=std_dev / np.sqrt(T), fmt=".")
 ax[0].plot(L_big, truncated_series(L_big, *popt2e), "--")
 ax[0].set_xlabel("L")
@@ -365,7 +354,6 @@ for i, data in enumerate(result2g):
     plt.bar(list(data.keys()), list(data.values()), label=f"L = {2 ** (i + 2)}")
 
 plt.xscale("log")
-# plt.plot(std_dev, (np.sqrt(2 * np.pi) * std_dev) ** -1, label="$\sigma_h$")
 plt.xlabel("$h$")
 plt.ylabel("$P(h; L)$")
 plt.legend(fontsize=10)
@@ -385,11 +373,8 @@ for dictionary in unpack:
     for k, v in dictionary.items():
         flattened_arr.extend([k] * v)
 
-# normal_generator = sp.stats.norm.rvs(size=100_000)
-shapiro_result = sp.stats.shapiro(flattened_arr)  # don't use because it doesn't work as well with many duplicate values
-ks_test_result = sp.stats.kstest(flattened_arr, "norm")
-print(shapiro_result)
-# print(ks_test_result)
+ks_test_result = sp.stats.kstest(flattened_arr, "nom")
+print(ks_test_result)
 
 # %% task 2g - plot collapsed
 fig = plt.figure()
