@@ -204,7 +204,7 @@ plt.ylim(0.05, 2)
 plt.xlabel("$t/L^2$")
 plt.ylabel(r"$\tilde{h}(t; L)/L$")
 fig.tight_layout()
-plt.savefig("plots/Task2d_collapsed.pgf", format="pgf")
+plt.savefig("plots/Task2d_collapsed.png", format="png", dpi=1000)
 plt.show()
 
 # %% Task 2e, 2f, 3a & 3b - Find moments, avg heights and std dev
